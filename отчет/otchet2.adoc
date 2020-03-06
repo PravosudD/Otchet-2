@@ -1,0 +1,224 @@
+= Отчет №2
+
+:imagesdir: pictures2
+
+== Задание 1
+
+Необходимо узнать на каком адресе расположен модуль GPIOC
+
+[source]
+----
+#include <cstdint>
+#include <cstddef>
+#include <iostream>
+#include "rccregisters.hpp"
+#include "gpiocregisters.hpp"
+using namespace std;
+
+//константные значения, которые не будут меняться:
+
+constexpr size_t GpiocAddr = 0x40020800; //адрес регистра gpioc
+----
+
+.Адрес регистра GPIOC
+image::pic1.png[]
+
+[source]
+----
+
+constexpr size_t ModerOffset = 0x00; //смещение адреса регистра модер относительно джпиоц (стр. 157)
+constexpr size_t OdrOffset = 0x14; //смещение адреса регистра одр относительно джпиоц (стр 159.)
+constexpr size_t ModerAddr = GpiocAddr + ModerOffset; //записываем адрес регистра модер
+constexpr size_t OdrAddr = GpiocAddr + OdrOffset; //записываем адрес регистра одр
+using namespace std;
+void delay(uint32_t delay) //процедура задержки
+ {
+   for (int i=0; i<delay; i++)
+   {
+   }
+ }
+
+int main() 
+{
+RCC::AHB1ENR::GPIOCEN::Enable::Set() ; //включаем тактирование портов джпиоц
+
+  volatile uint32_t *ModerPointer = reinterpret_cast<volatile uint32_t*>(ModerAddr); //преобразует константный МодерАддр в МодерПойнтер, указатель типа volatile uint32_t 
+  volatile uint32_t *OdrPointer = reinterpret_cast<volatile uint32_t*>(OdrAddr ) ; //аналогичсно преобразует ОдрАддр в ОдрПойнтер
+  for(;;) 
+   {
+      *ModerPointer |= ((1 << 10 )|(1<<16)|(1<<18)); //выставляем 10, 16 и 18 биты регистра модер в 1
+      *ModerPointer &= ~ ((1 << 11 )|(1<<17)|(1<<19)); //выставляем 11, 17 и 19 биты регистра модер в 0
+      *OdrPointer |= ((1 << 5 )|(1<<8)|(1<<9)); //выставляем 5, 8 и 9 биты регистра одр в 1
+      delay (1'000'000); //задержка
+      *OdrPointer &= ~ ((1 << 5 )|(1<<8)|(1<<9)); //выставляем 5, 8 и 9 биты регистра одр в 0
+   }
+  return 0 ;
+}
+----
+
+.Значения регистров Moder при запуске программы
+image::pic2.png[]
+
+.Значения регистров Moder после установления битов
+image::pic3.png[]
+
+.Значения регистров ODR при запуске программы
+image::pic4.png[]
+
+.Значения регистров ODR после установления битов
+image::pic5.png[]
+
+.Значения регистров ODR после сброса битов
+image::pic6.png[]
+
+== Задание 2
+
+Создать указатель типа volatile int*, которая будет содержать адрес регистра GPIOC_MODER
+[source]
+
+----
+#include <cstdint>
+#include <cstddef>
+#include <iostream>
+
+using namespace std;
+constexpr size_t GpiocAddr = 0x40020800; //записываем адрес регистра джпиоц
+
+constexpr size_t ModerOffset = 0x00; //смещение регистра модер относительно джпиоц
+
+constexpr size_t ModerAddr = GpiocAddr + ModerOffset; //записываем адрес регистра модер
+
+constexpr size_t RAMAddr =  0x20000020; //адрес произвольного регистра РАМ из ОЗУ
+
+int main() 
+{
+    volatile uint32_t *ModerPointer = reinterpret_cast<volatile uint32_t*>(ModerAddr) ; //преобразуем константный МодерАддр в МодерПойнтер, указатель типа volatile uint32_t
+    
+    volatile uint32_t *RAMPointer = reinterpret_cast<volatile uint32_t*>(RAMAddr) ; //аналогично преобразуем РАМАддр в РамПойнтер
+
+     uint32_t Moder = *ModerPointer; //присваиваем беззнаковой переменной Moder значение, которое находится под указателем МодерПойнтер
+     uint32_t RAM1 = *RAMPointer; //присваиваем беззнаковой переменной RAM1 значение, которое находится под указателем РамПойнтер
+
+  return 0 ;
+}
+----
+
+== Задание 3
+
+== Задание 3
+
+[source]
+----
+
+#include "gpioaregisters.hpp"
+#include "gpiocregisters.hpp"
+#include "rccregisters.hpp"
+#include "tim2registers.hpp"
+
+extern "C" 
+{
+  int __low_level_init(void) //низкоуровневый логический сигнал
+    RCC::CR::HSION::On::Set(); //включаем внутренний генератор частоты
+    while ( !RCC::CR::HSIRDY::Enable::IsSet( ) ) //дожидаемся стабилизации источника
+     {      
+     };
+    
+    RCC::CFGR::SW::Hse::Set(); //подключаем источник к внутренней частоте
+    while ( !RCC::CFGR::SWS::Hse::IsSet( )) //дожидаемся стабилизации источника
+    { 
+    };
+    
+    RCC::CFGR::HPRE::Value4::Set(); //у внутреннего генератора частота 16 МГц, нужна 2 МГц. Делим на 8
+    return 0;
+  }
+}
+ 
+int main()
+{
+  return 0;
+}
+----
+
+* Задание 4
+
+
+  #include "gpioaregisters.hpp"
+  #include "gpiocregisters.hpp" 
+  #include "rccregisters.hpp"
+  #include "tim2registers.hpp"
+
+
+  extern "C" //внешний
+  {
+   int __low_level_init(void)
+    {
+    RCC::CR::HSION::On::Set();
+    while ( !RCC::CR::HSIRDY::Enable::IsSet( ) )
+    {
+    };
+
+    RCC::CFGR::SW::Hsi::Set();
+    while ( !RCC::CFGR::SWS::Hsi::IsSet( ) )
+    {
+    };
+
+    RCC::AHB1ENR::GPIOCEN::Enable::Set() ;
+    RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
+    GPIOA::MODER::MODER5::Output::Set() ;
+    GPIOC::MODER::MODER5::Output::Set() ;
+    GPIOC::MODER::MODER8::Output::Set() ;
+    GPIOC::MODER::MODER9::Output::Set() ;
+    GPIOC::MODER::MODER13::Input::Set() ;
+
+    RCC::APB1ENR::TIM2EN::Enable::Set() ;
+    TIM2::CR1::URS::OverFlow::Set();
+    return 0;
+  }
+  }
+
+  void Delay (std::uint32_t delay)
+
+  {
+
+  TIM2::ARR::Write(16'000 * delay );
+  TIM2::SR::UIF::NoUpdate::Set();
+  TIM2::CNT::Write(0);
+  TIM2::CR1::CEN::Enable::Set();
+  while (TIM2::SR::UIF::NoUpdate::IsSet() )
+  {
+
+  }
+  TIM2::CR1::CEN::Disable::Set();
+    }
+
+  int main()
+  {
+  bool flag = false;
+  for (; ;)
+  {
+
+    if(GPIOC::IDR::IDR13::Low::IsSet()) //kn vkl
+    {
+      while(GPIOC::IDR::IDR13::Low::IsSet())
+      {
+      } ;
+
+      if(flag)
+      {
+        GPIOA::ODR::ODR5::High::Set ();
+        GPIOC::ODR::ODR5::High::Set ();
+        GPIOC::ODR::ODR8::High::Set ();
+        GPIOC::ODR::ODR9::High::Set ();
+        flag = false ;
+      }
+      else
+      {
+        GPIOA::ODR::ODR5::Low::Set ();
+        GPIOC::ODR::ODR5::Low::Set ();
+        GPIOC::ODR::ODR8::Low::Set ();
+        GPIOC::ODR::ODR9::Low::Set ();
+        flag = true ;
+      }
+    }
+  }
+}

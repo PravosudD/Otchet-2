@@ -1,0 +1,15 @@
+"C:\Dima\arm\bin\armproc.dll" 
+
+"C:\Dima\arm\bin\armstlink2.dll" 
+
+"C:\Users\infor\Desktop\Dima\Программированиеееее\2\1\Debug\Exe\lr2.out" 
+
+--plugin "C:\Dima\arm\bin\armbat.dll" 
+
+--device_macro "C:\Dima\arm\config\debugger\ST\STM32F4xx.dmac" 
+
+--flash_loader "C:\Dima\arm\config\flashloader\ST\FlashSTM32F411xE.board" 
+
+
+
+
